@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <PackageId>NvgSharp.Text.FNA</PackageId>
     <AssemblyName>NvgSharp.Text.FNA</AssemblyName>
     <Description>NvgSharp.Text for FNA.Core</Description>

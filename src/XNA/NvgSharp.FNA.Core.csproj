@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>NvgSharp.FNA</PackageId>
     <AssemblyName>NvgSharp.FNA</AssemblyName>
     <Description>NvgSharp for FNA.Core</Description>
@@ -22,7 +22,7 @@
     <EmbeddedResource Include="Resources\Effect.fxb" />
     <EmbeddedResource Include="Resources\Effect_AA.fxb" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\..\..\FNA\FNA.Core.csproj" />
   </ItemGroup>
