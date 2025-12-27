@@ -1,11 +1,13 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace NvgSharp
 {
-	internal struct TextSource
+	internal ref struct TextSource
 	{
 		public string StringText;
 		public StringBuilder StringBuilderText;
+		public ReadOnlySpan<char> SpanText;
 		private int Position;
 
 		public TextSource(string text)
@@ -19,6 +21,14 @@ namespace NvgSharp
 		{
 			StringText = null;
 			StringBuilderText = text;
+			Position = 0;
+		}
+
+		public TextSource(ReadOnlySpan<char> text)
+		{
+			StringText = null;
+			StringBuilderText = null;
+			SpanText = text;
 			Position = 0;
 		}
 

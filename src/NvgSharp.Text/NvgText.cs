@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using FontStashSharp;
 using FontStashSharp.Interfaces;
+using FontStashSharp.RichText;
 
 #if MONOGAME || FNA
 using Microsoft.Xna.Framework;
@@ -125,9 +126,15 @@ namespace NvgSharp
 						layerDepth: layerDepth, characterSpacing: characterSpacing, lineSpacing: lineSpacing,
 						textStyle: textStyle, effect: effect, effectAmount: effectAmount);
 				}
-				else
+				else if (text.StringBuilderText != null)
 				{
 					font.DrawText(this, text.StringBuilderText, new Vector2(x, y), Color.White,
+						layerDepth: layerDepth, characterSpacing: characterSpacing, lineSpacing: lineSpacing,
+						textStyle: textStyle, effect: effect, effectAmount: effectAmount);
+				}
+				else
+				{
+					font.DrawText(this, text.SpanText, new Vector2(x, y), Color.White,
 						layerDepth: layerDepth, characterSpacing: characterSpacing, lineSpacing: lineSpacing,
 						textStyle: textStyle, effect: effect, effectAmount: effectAmount);
 				}
