@@ -17,11 +17,7 @@ namespace NvgSharp
 		{
 		}
 
-		public readonly NvgPoint this[int index]
-		{
-			get => Points[index];
-			set => Points[index] = value;
-		}
+		public ref NvgPoint this[int index] => ref CollectionsMarshal.AsSpan(Points)[index];
 
 		public readonly int Count => Points.Count;
 

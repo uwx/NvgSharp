@@ -791,7 +791,7 @@ namespace NvgSharp
 			_bounds.X2 = _bounds.Y2 = -1e6f;
 			for (var j = 0; j < _pathsCache.Count; j++)
 			{
-				var path = _pathsCache[j];
+				var path = CollectionsMarshal.AsSpan(_pathsCache)[j];
 
 				var p0Index = path.Count - 1;
 				var p1Index = 0;
@@ -813,8 +813,8 @@ namespace NvgSharp
 
 				for (var i = 0; i < path.Points.Count; i++)
 				{
-					var p0 = path[p0Index];
-					var p1 = path[p1Index];
+					ref var p0 = ref path[p0Index];
+					ref var p1 = ref path[p1Index];
 					p0.DeltaX = p1.X - p0.X;
 					p0.DeltaY = p1.Y - p0.Y;
 					p0.Length = NvgUtility.Normalize(ref p0.DeltaX, ref p0.DeltaY);
@@ -836,15 +836,15 @@ namespace NvgSharp
 				iw = 1.0f / w;
 			for (i = 0; i < _pathsCache.Count; i++)
 			{
-				var path = _pathsCache[i];
+				ref var path = ref CollectionsMarshal.AsSpan(_pathsCache)[i];
 				var p0Index = path.Count - 1;
 				var p1Index = 0;
 				var nleft = 0;
 				path.BevelCount = 0;
 				for (j = 0; j < path.Points.Count; j++)
 				{
-					var p0 = path[p0Index];
-					var p1 = path[p1Index];
+					ref var p0 = ref path[p0Index];
+					ref var p1 = ref path[p1Index];
 
 					var dlx0 = p0.DeltaY;
 					var dly0 = -p0.DeltaX;
@@ -903,7 +903,7 @@ namespace NvgSharp
 			for (var i = 0; i < _pathsCache.Count; i++)
 			{
 				var vertexOffset = _renderCache.VertexCount;
-				var path = _pathsCache[i];
+				ref var path = ref CollectionsMarshal.AsSpan(_pathsCache)[i];
 				float dx = 0;
 				float dy = 0;
 				path.FillCount = 0;
