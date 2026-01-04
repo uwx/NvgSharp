@@ -55,13 +55,17 @@ namespace NvgSharp
 		public int StrokeCount;
 	}
 
-	public class CallInfo
+	public struct CallInfo
 	{
-		public CallType Type;
-		public UniformInfo UniformInfo, UniformInfo2;
+		public CallType Type = CallType.Fill;
+		public UniformInfo UniformInfo = default, UniformInfo2 = default;
 		public readonly List<FillStrokeInfo> FillStrokeInfos = new List<FillStrokeInfo>();
-		public int TriangleOffset;
-		public int TriangleCount;
+		public int TriangleOffset = 0;
+		public int TriangleCount = 0;
+
+		public CallInfo()
+		{
+		}
 	}
 
 	public interface INvgRenderer

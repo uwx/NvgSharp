@@ -22,21 +22,21 @@ namespace NvgSharp
 		/// <summary>
 		/// PI
 		/// </summary>
-		public const float PI = (float)Math.PI;
+		public const float PI = MathF.PI;
 
-		public static float SqrtF(float a) => (float)Math.Sqrt(a);
+		public static float SqrtF(float a) => MathF.Sqrt(a);
 
-		public static float SinF(float a) => (float)Math.Sin(a);
+		public static float SinF(float a) => MathF.Sin(a);
 
-		public static float TanF(float a) => (float)Math.Tan(a);
+		public static float TanF(float a) => MathF.Tan(a);
 
-		public static float Atan2F(float a, float b) => (float)Math.Atan2(a, b);
+		public static float Atan2F(float a, float b) => MathF.Atan2(a, b);
 
-		public static float CosF(float a) => (float)Math.Cos(a);
+		public static float CosF(float a) => MathF.Cos(a);
 
-		public static float AcosF(float a) => (float)Math.Acos(a);
+		public static float AcosF(float a) => MathF.Acos(a);
 
-		public static float CeilingF(float a) => (float)Math.Ceiling(a);
+		public static float CeilingF(float a) => MathF.Ceiling(a);
 
 		public static int ClampI(int a, int mn, int mx)
 		{
@@ -61,7 +61,7 @@ namespace NvgSharp
 			var d = SqrtF((x * x) + (y * y));
 			if (d > 1e-6f)
 			{
-				float id = (float)(1.0f / d);
+				float id = 1.0f / d;
 				x *= id;
 				y *= id;
 			}

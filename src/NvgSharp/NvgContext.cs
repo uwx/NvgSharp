@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance;
 
 #if MONOGAME || FNA
 using Microsoft.Xna.Framework;
@@ -112,42 +114,37 @@ namespace NvgSharp
 			state.Transform.SetIdentity();
 			state.Scissor.Extent.X = -1.0f;
 			state.Scissor.Extent.Y = -1.0f;
+			_currentState = state;
 		}
 
 		public void ShapeAntiAlias(int enabled)
 		{
-			var state = _currentState;
-			state.ShapeAntiAlias = enabled;
+			_currentState.ShapeAntiAlias = enabled;
 		}
 
 		public void StrokeWidth(float width)
 		{
-			var state = _currentState;
-			state.StrokeWidth = width;
+			_currentState.StrokeWidth = width;
 		}
 
 		public void MiterLimit(float limit)
 		{
-			var state = _currentState;
-			state.MiterLimit = limit;
+			_currentState.MiterLimit = limit;
 		}
 
 		public void LineCap(LineCap cap)
 		{
-			var state = _currentState;
-			state.LineCap = cap;
+			_currentState.LineCap = cap;
 		}
 
 		public void LineJoin(LineCap join)
 		{
-			var state = _currentState;
-			state.LineJoin = join;
+			_currentState.LineJoin = join;
 		}
 
 		public void GlobalAlpha(float alpha)
 		{
-			var state = _currentState;
-			state.Alpha = alpha;
+			_currentState.Alpha = alpha;
 		}
 
 		public void Transform(float a, float b, float c, float d, float e, float f)
@@ -162,65 +159,58 @@ namespace NvgSharp
 			t.T6 = f;
 
 			state.Transform.Premultiply(ref t);
+			
+			_currentState = state;
 		}
 
 		public void ResetTransform()
 		{
-			var state = _currentState;
-			state.Transform.SetIdentity();
+			_currentState.Transform.SetIdentity();
 		}
 
 		public void Translate(float x, float y)
 		{
-			var state = _currentState;
 			var t = new Transform();
 			t.SetTranslate(x, y);
-			state.Transform.Premultiply(ref t);
+			_currentState.Transform.Premultiply(ref t);
 		}
 
 		public void Rotate(float angle)
 		{
-			var state = _currentState;
 			var t = new Transform();
 			t.SetRotate(angle);
-			state.Transform.Premultiply(ref t);
+			_currentState.Transform.Premultiply(ref t);
 		}
 
 		public void SkewX(float angle)
 		{
-			var state = _currentState;
 			var t = new Transform();
 			t.SetSkewX(angle);
-			state.Transform.Premultiply(ref t);
+			_currentState.Transform.Premultiply(ref t);
 		}
 
 		public void SkewY(float angle)
 		{
-			var state = _currentState;
 			var t = new Transform();
 			t.SetSkewY(angle);
-			state.Transform.Premultiply(ref t);
+			_currentState.Transform.Premultiply(ref t);
 		}
 
 		public void Scale(float x, float y)
 		{
-			var state = _currentState;
 			var t = new Transform();
 			t.SetScale(x, y);
-			state.Transform.Premultiply(ref t);
+			_currentState.Transform.Premultiply(ref t);
 		}
 
 		public void CurrentTransform(Transform xform)
 		{
-			var state = _currentState;
-
-			state.Transform = xform;
+			_currentState.Transform = xform;
 		}
 
 		public void StrokeColor(Color color)
 		{
-			var state = _currentState;
-			state.Stroke = new Paint(color);
+			_currentState.Stroke = new Paint(color);
 		}
 
 		public void StrokePaint(Paint paint)
@@ -228,12 +218,12 @@ namespace NvgSharp
 			var state = _currentState;
 			state.Stroke = paint;
 			state.Stroke.Transform.Multiply(ref state.Transform);
+			_currentState = state;
 		}
 
 		public void FillColor(Color color)
 		{
-			var state = _currentState;
-			state.Fill = new Paint(color);
+			_currentState.Fill = new Paint(color);
 		}
 
 		public void FillPaint(Paint paint)
@@ -241,6 +231,7 @@ namespace NvgSharp
 			var state = _currentState;
 			state.Fill = paint;
 			state.Fill.Transform.Multiply(ref state.Transform);
+			_currentState = state;
 		}
 
 		public Paint LinearGradient(float sx, float sy, float ex, float ey, Color icol, Color ocol)
@@ -249,10 +240,10 @@ namespace NvgSharp
 			float dx = 0;
 			float dy = 0;
 			float d = 0;
-			var large = (float)1e5;
+			var large = 1e5f;
 			dx = ex - sx;
 			dy = ey - sy;
-			d = (float)Math.Sqrt(dx * dx + dy * dy);
+			d = MathF.Sqrt(dx * dx + dy * dy);
 			if (d > 0.0001f)
 			{
 				dx /= d;
@@ -335,6 +326,7 @@ namespace NvgSharp
 			state.Scissor.Transform.Multiply(ref state.Transform);
 			state.Scissor.Extent.X = w * 0.5f;
 			state.Scissor.Extent.Y = h * 0.5f;
+			_currentState = state;
 		}
 
 		public void IntersectScissor(float x, float y, float w, float h)
@@ -363,6 +355,7 @@ namespace NvgSharp
 			state.Scissor.Transform.Zero();
 			state.Scissor.Extent.X = -1.0f;
 			state.Scissor.Extent.Y = -1.0f;
+			_currentState = state;
 		}
 
 		public void BeginPath()
@@ -453,18 +446,18 @@ namespace NvgSharp
 			if (dir == Winding.ClockWise)
 			{
 				if (Math.Abs(da) >= NvgUtility.PI * 2)
-					da = (float)(NvgUtility.PI * 2);
+					da = NvgUtility.PI * 2;
 				else
 					while (da < 0.0f)
-						da += (float)(NvgUtility.PI * 2);
+						da += NvgUtility.PI * 2;
 			}
 			else
 			{
 				if (Math.Abs(da) >= NvgUtility.PI * 2)
-					da = (float)(-NvgUtility.PI * 2);
+					da = -NvgUtility.PI * 2;
 				else
 					while (da > 0.0f)
-						da -= (float)(NvgUtility.PI * 2);
+						da -= NvgUtility.PI * 2;
 			}
 
 			var ndivs = Math.Max(1, Math.Min((int)(Math.Abs(da) / (NvgUtility.PI * 0.5f) + 0.5f), 5));
@@ -661,11 +654,11 @@ namespace NvgSharp
 		private void AppendCommand(float p1, float p2, float p3, float p4, float p5, float p6) => 
 			AppendCommand(new Command(p1, p2, p3, p4, p5, p6));
 
-		private Path GetLastPath()
+		private NullableRef<Path> GetLastPath()
 		{
 			if (_pathsCache.Count > 0)
-				return _pathsCache[_pathsCache.Count - 1];
-			return null;
+				return new NullableRef<Path>(ref CollectionsMarshal.AsSpan(_pathsCache)[^1]);
+			return NullableRef<Path>.Null;
 		}
 
 		private Path __addPath()
@@ -683,15 +676,14 @@ namespace NvgSharp
 		private void __addPoint(float x, float y, PointFlags flags)
 		{
 			var path = GetLastPath();
-			if (path == null)
+			if (!path.HasValue)
 			{
 				return;
 			}
 
-			NvgPoint pt;
-			if (path.Points.Count > 0)
+			if (path.Value.Points.Count > 0)
 			{
-				pt = path.LastPoint;
+				ref var pt = ref path.Value.LastPoint;
 				if (__ptEquals(pt.X, pt.Y, x, y, _distTol) != 0)
 				{
 					pt.flags |= (byte)flags;
@@ -699,28 +691,31 @@ namespace NvgSharp
 				}
 			}
 
-			pt = new NvgPoint();
-			pt.Reset();
-			pt.X = x;
-			pt.Y = y;
-			pt.flags = (byte)flags;
-			path.Points.Add(pt);
+			{
+				var pt = new NvgPoint
+				{
+					X = x,
+					Y = y,
+					flags = (byte)flags
+				};
+				path.Value.Points.Add(pt);
+			}
 		}
 
 		private void __closePath()
 		{
 			var path = GetLastPath();
-			if (path == null)
+			if (!path.HasValue)
 				return;
-			path.Closed = true;
+			path.Value.Closed = true;
 		}
 
 		private void __pathWinding(Winding winding)
 		{
 			var path = GetLastPath();
-			if (path == null)
+			if (!path.HasValue)
 				return;
-			path.Winding = winding;
+			path.Value.Winding = winding;
 		}
 
 		private void __tesselateBezier(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
@@ -759,7 +754,7 @@ namespace NvgSharp
 			if (_pathsCache.Count > 0)
 				return;
 
-			Path lastPath = null;
+			Path? lastPath = null;
 			for(var i = 0; i < _commands.Count; ++i)
 			{
 				switch (_commands[i].Type)
@@ -772,9 +767,9 @@ namespace NvgSharp
 						__addPoint(_commands[i].P1, _commands[i].P2, PointFlags.Corner);
 						break;
 					case CommandType.BezierTo:
-						if (lastPath != null && lastPath.Points.Count > 0)
+						if (lastPath.HasValue && lastPath.Value.Points.Count > 0)
 						{
-							var last = lastPath.LastPoint;
+							var last = lastPath.Value.LastPoint;
 							__tesselateBezier(last.X, last.Y,
 								_commands[i].P1, _commands[i].P2,
 								_commands[i].P3, _commands[i].P4,
@@ -1005,7 +1000,7 @@ namespace NvgSharp
 			for (var i = 0; i < _pathsCache.Count; i++)
 			{
 				var vertexOffset = _renderCache.VertexCount;
-				var path = _pathsCache[i];
+				ref var path = ref CollectionsMarshal.AsSpan(_pathsCache)[i];
 				var woff = 0.5f * aa;
 				if (fringe)
 				{
@@ -1137,9 +1132,7 @@ namespace NvgSharp
 			var j = pts.Count - 1;
 			while (i < j)
 			{
-				var tmp = pts[i];
-				pts[i] = pts[j];
-				pts[j] = tmp;
+				(pts[i], pts[j]) = (pts[j], pts[i]);
 				i++;
 				j--;
 			}
@@ -1157,8 +1150,8 @@ namespace NvgSharp
 
 		private static float __getAverageScale(ref Transform t)
 		{
-			var sx = (float)Math.Sqrt(t.T1 * t.T1 + t.T3 * t.T3);
-			var sy = (float)Math.Sqrt(t.T2 * t.T2 + t.T4 * t.T4);
+			var sx = MathF.Sqrt(t.T1 * t.T1 + t.T3 * t.T3);
+			var sy = MathF.Sqrt(t.T2 * t.T2 + t.T4 * t.T4);
 			return (sx + sy) * 0.5f;
 		}
 
@@ -1201,7 +1194,7 @@ namespace NvgSharp
 				var a0 = NvgUtility.Atan2F(-dly0, -dlx0);
 				var a1 = NvgUtility.Atan2F(-dly1, -dlx1);
 				if (a1 > a0)
-					a1 -= (float)(NvgUtility.PI * 2);
+					a1 -= NvgUtility.PI * 2;
 				_renderCache.AddVertex(bounds.X, bounds.Y, lu, 1);
 				_renderCache.AddVertex(p1.X - dlx0 * rw, p1.Y - dly0 * rw, ru, 1);
 				var n = NvgUtility.ClampI((int)NvgUtility.CeilingF((float)((a0 - a1) / NvgUtility.PI * ncap)), 2, ncap);
@@ -1224,7 +1217,7 @@ namespace NvgSharp
 				var a0 = NvgUtility.Atan2F(dly0, dlx0);
 				var a1 = NvgUtility.Atan2F(dly1, dlx1);
 				if (a1 < a0)
-					a1 += (float)(NvgUtility.PI * 2);
+					a1 += NvgUtility.PI * 2;
 				_renderCache.AddVertex(p1.X + dlx0 * rw, p1.Y + dly0 * rw, lu, 1);
 				_renderCache.AddVertex(bounds.X, bounds.Y, ru, 1);
 				var n = NvgUtility.ClampI((int)NvgUtility.CeilingF((float)((a1 - a0) / NvgUtility.PI * ncap)), 2, ncap);
@@ -1338,7 +1331,7 @@ namespace NvgSharp
 			var dly = -dx;
 			for (var i = 0; i < ncap; i++)
 			{
-				var a = (float)(i / (float)(ncap - 1) * NvgUtility.PI);
+				var a = i / (float)(ncap - 1) * NvgUtility.PI;
 				var ax = NvgUtility.CosF(a) * w;
 				var ay = NvgUtility.SinF(a) * w;
 				_renderCache.AddVertex(px - dlx * ax - dx * ay, py - dly * ax - dy * ay, u0, 1);
@@ -1359,7 +1352,7 @@ namespace NvgSharp
 			_renderCache.AddVertex(px - dlx * w, py - dly * w, u1, 1);
 			for (var i = 0; i < ncap; i++)
 			{
-				var a = (float)(i / (float)(ncap - 1) * NvgUtility.PI);
+				var a = i / (float)(ncap - 1) * NvgUtility.PI;
 				var ax = NvgUtility.CosF(a) * w;
 				var ay = NvgUtility.SinF(a) * w;
 				_renderCache.AddVertex(px, py, 0.5f, 1);
