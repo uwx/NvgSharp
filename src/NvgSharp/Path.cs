@@ -17,9 +17,9 @@ namespace NvgSharp
 		{
 		}
 
-		public NvgPoint this[int index]
+		public readonly NvgPoint this[int index]
 		{
-			readonly get => Points[index];
+			get => Points[index];
 			set => Points[index] = value;
 		}
 

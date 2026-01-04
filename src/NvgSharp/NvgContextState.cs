@@ -20,7 +20,7 @@ namespace NvgSharp
 		{
 		}
 
-		public NvgContextState Clone()
+		public readonly NvgContextState Clone()
 		{
 			return new NvgContextState
 			{
