@@ -17,8 +17,8 @@ namespace NvgSharp
 
 		private readonly bool _stencilStrokes;
 
-		public readonly ArrayBuffer<Vertex> VertexArray = new ArrayBuffer<Vertex>(MAX_VERTICES);
-		public readonly List<CallInfo> Calls = new List<CallInfo>();
+		public readonly ArrayBuffer<Vertex> VertexArray = new(MAX_VERTICES);
+		public readonly List<CallInfo> Calls = new();
 		public float DevicePixelRatio;
 
 		public int VertexCount => VertexArray.Count;
@@ -65,8 +65,8 @@ namespace NvgSharp
 				uniform.scissorMat = scissor.Transform.BuildInverse().ToMatrix();
 				uniform.scissorExt.X = scissor.Extent.X;
 				uniform.scissorExt.Y = scissor.Extent.Y;
-				uniform.scissorScale.X = (float)Math.Sqrt(scissor.Transform.T1 * scissor.Transform.T1 + scissor.Transform.T3 * scissor.Transform.T3) / fringe;
-				uniform.scissorScale.Y = (float)Math.Sqrt(scissor.Transform.T2 * scissor.Transform.T2 + scissor.Transform.T4 * scissor.Transform.T4) / fringe;
+				uniform.scissorScale.X = MathF.Sqrt(scissor.Transform.T1 * scissor.Transform.T1 + scissor.Transform.T3 * scissor.Transform.T3) / fringe;
+				uniform.scissorScale.Y = MathF.Sqrt(scissor.Transform.T2 * scissor.Transform.T2 + scissor.Transform.T4 * scissor.Transform.T4) / fringe;
 			}
 
 			uniform.extent = paint.Extent;
@@ -89,19 +89,19 @@ namespace NvgSharp
 			uniform.paintMat = paint.Transform.BuildInverse().ToMatrix();
 		}
 
-		public void RenderFill(ref Paint paint, ref Scissor scissor, float fringe, Bounds bounds, IReadOnlyList<Path> paths)
+		public void RenderFill(ref Paint paint, ref Scissor scissor, float fringe, in Bounds bounds, in ReadOnlySpan<Path> paths)
 		{
 			var call = new CallInfo
 			{
 				Type = CallType.Fill
 			};
 
-			if (paths.Count == 1 && paths[0].Convex)
+			if (paths.Length == 1 && paths[0].Convex)
 			{
 				call.Type = CallType.ConvexFill;
 			}
 
-			for (var i = 0; i < paths.Count; i++)
+			for (var i = 0; i < paths.Length; i++)
 			{
 				var path = paths[i];
 
@@ -143,14 +143,14 @@ namespace NvgSharp
 			Calls.Add(call);
 		}
 
-		public void RenderStroke(ref Paint paint, ref Scissor scissor, float fringe, float strokeWidth, IReadOnlyList<Path> paths)
+		public void RenderStroke(ref Paint paint, ref Scissor scissor, float fringe, float strokeWidth, in ReadOnlySpan<Path> paths)
 		{
 			var call = new CallInfo
 			{
 				Type = CallType.Stroke,
 			};
 
-			for (var i = 0; i < paths.Count; i++)
+			for (var i = 0; i < paths.Length; i++)
 			{
 				var path = paths[i];
 

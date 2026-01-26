@@ -14,7 +14,7 @@ using Texture2D = System.Object;
 
 namespace NvgSharp
 {
-	public enum CallType
+	public enum CallType : byte
 	{
 		Fill,
 		ConvexFill,
@@ -22,7 +22,7 @@ namespace NvgSharp
 		Triangles
 	}
 
-	public enum RenderType
+	public enum RenderType : byte
 	{
 		FillGradient,
 		FillImage,
@@ -59,7 +59,7 @@ namespace NvgSharp
 	{
 		public CallType Type = CallType.Fill;
 		public UniformInfo UniformInfo = default, UniformInfo2 = default;
-		public readonly List<FillStrokeInfo> FillStrokeInfos = new List<FillStrokeInfo>();
+		public readonly List<FillStrokeInfo> FillStrokeInfos = [];
 		public int TriangleOffset = 0;
 		public int TriangleCount = 0;
 

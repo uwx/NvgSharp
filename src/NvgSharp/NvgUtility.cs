@@ -69,7 +69,7 @@ namespace NvgSharp
 			return d;
 		}
 
-		public static void MakeZero(this Matrix m)
+		public static void MakeZero(ref this Matrix m)
 		{
 			m.M11 = m.M12 = m.M13 = m.M14 = 0;
 			m.M21 = m.M22 = m.M23 = m.M24 = 0;
