@@ -13,6 +13,16 @@ namespace NvgSharp
 	[StructLayout(LayoutKind.Sequential)]
 	public struct Transform
 	{
+		public static Transform Identity
+		{
+			get
+			{
+				var t = new Transform();
+				t.SetIdentity();
+				return t;
+			}
+		}
+		
 		public float T1, T2, T3, T4, T5, T6;
 
 		public void Zero()

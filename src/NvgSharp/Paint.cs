@@ -14,27 +14,15 @@ using Texture2D = System.Object;
 namespace NvgSharp
 {
 	[StructLayout(LayoutKind.Sequential)]
-	public struct Paint
+	public struct Paint(Color color)
 	{
-		public Transform Transform;
-		public Vector2 Extent;
-		public float Radius;
-		public float Feather;
-		public Color InnerColor;
-		public Color OuterColor;
-		public Texture2D Image;
-		
-		public Paint(Color color)
-		{
-			Transform = new Transform();
-			Extent = new Vector2();
-			Transform.SetIdentity();
-			Radius = 0.0f;
-			Feather = 1.0f;
-			InnerColor = color;
-			OuterColor = color;
-			Image = null;
-		}
+		public Transform Transform = Transform.Identity;
+		public Vector2 Extent = new();
+		public float Radius = 0.0f;
+		public float Feather = 1.0f;
+		public Color InnerColor = color;
+		public Color OuterColor = color;
+		public Texture2D Image = null;
 
 		public void Zero()
 		{
