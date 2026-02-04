@@ -1,6 +1,6 @@
 namespace NvgSharp
 {
-	public enum Winding
+	public enum Winding : byte
 	{
 		/// <summary>
 		/// Winding for solid shapes
@@ -13,7 +13,7 @@ namespace NvgSharp
 		ClockWise = 2,
 	};
 
-	public enum Solidity
+	public enum Solidity : byte
 	{
 		/// <summary>
 		/// CCW
@@ -26,7 +26,7 @@ namespace NvgSharp
 		Hole = 2,
 	};
 
-	public enum LineCap
+	public enum LineCap : byte
 	{
 		Butt,
 		Round,
@@ -35,7 +35,7 @@ namespace NvgSharp
 		Miter,
 	};
 
-	public enum ImageFlags
+	public enum ImageFlags : byte
 	{
 		/// <summary>
 		/// Generate mipmaps during creation of the image
@@ -68,7 +68,7 @@ namespace NvgSharp
 		Nearest = 1 << 5,
 	};
 
-	internal enum CommandType
+	internal enum CommandType : byte
 	{
 		MoveTo = 0,
 		LineTo = 1,
@@ -77,7 +77,7 @@ namespace NvgSharp
 		Winding = 4,
 	};
 
-	internal enum PointFlags
+	internal enum PointFlags : byte
 	{
 		Corner = 0x01,
 		Left = 0x02,
@@ -85,7 +85,7 @@ namespace NvgSharp
 		InnerBevel = 0x08,
 	};
 
-	internal enum CodepointType
+	internal enum CodepointType : byte
 	{
 		Space,
 		Newline,

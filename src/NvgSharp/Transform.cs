@@ -102,7 +102,7 @@ namespace NvgSharp
 			T6 = 0.0f;
 		}
 
-		public void Multiply(ref Transform s)
+		public void Multiply(in Transform s)
 		{
 			var t0 = T1 * s.T1 + T2 * s.T3;
 			var t2 = T3 * s.T1 + T4 * s.T3;
@@ -115,10 +115,10 @@ namespace NvgSharp
 			T5 = t4;
 		}
 
-		public void Premultiply(ref Transform s)
+		public void Premultiply(in Transform s)
 		{
 			var s2 = s;
-			s2.Multiply(ref this);
+			s2.Multiply(in this);
 			Set(s2);
 		}
 

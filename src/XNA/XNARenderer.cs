@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -59,7 +59,7 @@ namespace NvgSharp
 			StencilPass = StencilOperation.Zero
 		};
 
-		private readonly EffectTechnique[] _techniques = new EffectTechnique[4];
+		private readonly InlineArray4<EffectTechnique> _techniques;
 		private readonly EffectParameter _extentParam;
 		private readonly EffectParameter _radiusParam;
 		private readonly EffectParameter _featherParam;
@@ -85,10 +85,7 @@ namespace NvgSharp
 
 		public XNARenderer(GraphicsDevice device, bool edgeAntiAlias)
 		{
-			if (device == null)
-				throw new ArgumentNullException("device");
-
-			_device = device;
+			_device = device ?? throw new ArgumentNullException(nameof(device));
 			_edgeAntiAlias = edgeAntiAlias;
 			_effect = new Effect(device, Resources.GetNvgEffectSource(edgeAntiAlias));
 
@@ -110,7 +107,7 @@ namespace NvgSharp
 				_strokeMultParam = _effect.Parameters["strokeMult"];
 			}
 
-			foreach (RenderingType param in Enum.GetValues(typeof(RenderingType)))
+			foreach (var param in Enum.GetValues<RenderingType>())
 				_techniques[(int)param] = _effect.Techniques[param.ToString()];
 		}
 
@@ -288,18 +285,18 @@ namespace NvgSharp
 
 		private static short[] BuildTriangleFanIndexBuffer(int indexesCount)
 		{
-			var result = new List<short>();
+			var result = new short[(indexesCount - 2) * 3];
 			for (var j = 2; j < indexesCount; ++j)
 			{
-				result.Add(0);
-				result.Add((short)(j - 1));
-				result.Add((short)j);
+				result[((j - 2) * 3) + 0] = 0;
+				result[((j - 2) * 3) + 1] = (short)(j - 1);
+				result[((j - 2) * 3) + 2] = (short)j;
 			}
 
-			return result.ToArray();
+			return result;
 		}
 
-		private enum RenderingType
+		private enum RenderingType : byte
 		{
 			FillGradient,
 			FillImage,

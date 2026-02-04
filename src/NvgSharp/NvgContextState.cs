@@ -3,20 +3,24 @@
 namespace NvgSharp
 {
 	[StructLayout(LayoutKind.Sequential)]
-	internal class NvgContextState
+	internal struct NvgContextState
 	{
-		public int ShapeAntiAlias;
-		public Paint Fill;
-		public Paint Stroke;
-		public float StrokeWidth;
-		public float MiterLimit;
-		public LineCap LineJoin;
-		public LineCap LineCap;
-		public float Alpha;
+		public int ShapeAntiAlias = 0;
+		public Paint Fill = default;
+		public Paint Stroke = default;
+		public float StrokeWidth = 0;
+		public float MiterLimit = 0;
+		public LineCap LineJoin = LineCap.Butt;
+		public LineCap LineCap = LineCap.Butt;
+		public float Alpha = 0;
 		public Transform Transform = new Transform();
-		public Scissor Scissor;
+		public Scissor Scissor = default;
 
-		public NvgContextState Clone()
+		public NvgContextState()
+		{
+		}
+
+		public readonly NvgContextState Clone()
 		{
 			return new NvgContextState
 			{

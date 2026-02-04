@@ -1,20 +1,18 @@
 ﻿namespace NvgSharp
 {
-	internal class NvgPoint
+	internal struct NvgPoint
 	{
-		public float X;
-		public float Y;
-		public float DeltaX;
-		public float DeltaY;
-		public float Length;
-		public float dmx;
-		public float dmy;
-		public byte flags;
+		public float X = 0;
+		public float Y = 0;
+		public float DeltaX = 0;
+		public float DeltaY = 0;
+		public float Length = 0;
+		public float dmx = 0;
+		public float dmy = 0;
+		public byte flags = 0;
 
-		public void Reset()
+		public NvgPoint()
 		{
-			X = Y = DeltaX = DeltaY = Length = dmx = dmy = 0;
-			flags = 0;
 		}
 	}
 }

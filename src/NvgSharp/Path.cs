@@ -1,26 +1,27 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace NvgSharp
 {
-	internal class Path
+	internal struct Path
 	{
-		public bool Closed;
-		public int BevelCount;
-		public int FillOffset, FillCount;
-		public int StrokeOffset, StrokeCount;
-		public Winding Winding;
-		public bool Convex;
+		public bool Closed = false;
+		public int BevelCount = 0;
+		public int FillOffset = 0, FillCount = 0;
+		public int StrokeOffset = 0, StrokeCount = 0;
+		public Winding Winding = (Winding)0;
+		public bool Convex = false;
 		public readonly List<NvgPoint> Points = new List<NvgPoint>();
 
-		public NvgPoint this[int index]
+		public Path()
 		{
-			get => Points[index];
-			set => Points[index] = value;
 		}
 
-		public int Count => Points.Count;
+		public ref NvgPoint this[int index] => ref CollectionsMarshal.AsSpan(Points)[index];
 
-		public NvgPoint FirstPoint => Points[0];
-		public NvgPoint LastPoint => Points[Points.Count - 1];
+		public readonly int Count => Points.Count;
+
+		public readonly ref NvgPoint FirstPoint => ref CollectionsMarshal.AsSpan(Points)[0];
+		public readonly ref NvgPoint LastPoint => ref CollectionsMarshal.AsSpan(Points)[^1];
 	}
 }
