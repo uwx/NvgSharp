@@ -923,6 +923,9 @@ namespace NvgSharp
 					s = 1;
 					e = path.Points.Count - 1;
 				}
+				
+				if (path.Points.Count < 2)
+					continue;
 
 				var p0 = path[p0Index];
 				var p1 = path[p1Index];
