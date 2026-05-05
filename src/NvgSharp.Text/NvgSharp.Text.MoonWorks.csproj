@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>NvgSharp.Text.MoonWorks</PackageId>
+    <AssemblyName>NvgSharp.Text.MoonWorks</AssemblyName>
+    <Description>NvgSharp.Text for MoonWorks</Description>
+    <DefineConstants>$(DefineConstants);MOONWORKS;PLATFORM_AGNOSTIC</DefineConstants>
+    <OutputPath>bin\MoonWorks\$(Configuration)</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\FontStashSharp\src\MoonWorks\FontStashSharp.MoonWorks.csproj" />
+    <ProjectReference Include="..\MoonWorks\NvgSharp.MoonWorks.csproj" />
+  </ItemGroup>
+</Project>

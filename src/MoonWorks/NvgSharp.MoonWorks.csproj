@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>NvgSharp.MoonWorks</PackageId>
+    <AssemblyName>NvgSharp.MoonWorks</AssemblyName>
+    <Description>NvgSharp for MoonWorks</Description>
+    <DefineConstants>$(DefineConstants);MOONWORKS</DefineConstants>
+    <OutputPath>bin\MoonWorks\$(Configuration)</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\NvgSharp\**\*.cs" LinkBase="NvgSharp" />
+    <Compile Remove="..\NvgSharp\obj\**\*.cs" LinkBase="NvgSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Shaders\*.hlsl" />
+    <None Include="Shaders\*.hlsli" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Shaders\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\MoonWorks\MoonWorks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+  </ItemGroup>
+</Project>
