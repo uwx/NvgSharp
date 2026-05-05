@@ -34,7 +34,7 @@ float sdroundrect(float2 pt, float2 ext, float rad)
 
 float scissorMask(float2 p)
 {
-    float2 sc = (abs((mul(float3(p.x, p.y, 1.0), (float3x3)scissorMat)).xy) - scissorExt.xy);
+    float2 sc = (abs((mul((float3x3)scissorMat, float3(p.x, p.y, 1.0))).xy) - scissorExt.xy);
     sc = float2(0.5, 0.5) - sc * scissorScale.xy;
     return clamp(sc.x, 0.0, 1.0) * clamp(sc.y, 0.0, 1.0);
 }

@@ -10,7 +10,7 @@ float4 main(PSInput input) : SV_TARGET
 #else
     float strokeAlpha = 1.0;
 #endif
-    float2 pt = (mul(float3(input.fpos, 1.0), (float3x3)paintMat)).xy / extent.xy;
+    float2 pt = (mul((float3x3)paintMat, float3(input.fpos, 1.0))).xy / extent.xy;
     float4 color = g_texture.Sample(g_sampler, pt);
     color = float4(color.xyz * color.w, color.w);
     color *= innerCol;

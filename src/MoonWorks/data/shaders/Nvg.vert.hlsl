@@ -23,6 +23,6 @@ VSOutput main(VSInput input)
     VSOutput output;
     output.ftcoord = input.TexCoord;
     output.fpos = input.Position;
-    output.Position = mul(float4(input.Position.x, input.Position.y, 0, 1), transformMat);
+    output.Position = mul(transformMat, float4(input.Position.x, input.Position.y, 0, 1));
     return output;
 }
