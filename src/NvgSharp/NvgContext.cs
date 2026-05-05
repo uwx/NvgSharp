@@ -8,6 +8,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 #elif STRIDE
 using Stride.Core.Mathematics;
+#elif MOONWORKS
+using MoonWorks.Graphics;
+using Color = MoonWorks.Graphics.Color;
+using Texture2D = MoonWorks.Graphics.Texture;
+
 #else
 using System.Numerics;
 using System.Drawing;
@@ -38,6 +43,8 @@ namespace NvgSharp
 		
 #if MONOGAME || FNA || STRIDE
 		internal readonly XNARenderer _renderer;
+#elif MOONWORKS
+		internal readonly MoonWorksRenderer _renderer;
 #else
 		internal readonly INvgRenderer _renderer;
 #endif
@@ -60,7 +67,7 @@ namespace NvgSharp
 			}
 		}
 
-#if MONOGAME || FNA || STRIDE
+#if MONOGAME || FNA || STRIDE || MOONWORKS
 		public GraphicsDevice GraphicsDevice => _renderer.GraphicsDevice;
 #endif
 
@@ -68,12 +75,18 @@ namespace NvgSharp
 		public NvgContext(GraphicsDevice device, bool edgeAntiAlias = true, bool stencilStrokes = true)
 		{
 			_renderer = new XNARenderer(device, edgeAntiAlias);
+			_edgeAntiAlias = edgeAntiAlias;
+#elif MOONWORKS
+		public NvgContext(MoonWorksRenderer renderer, bool stencilStrokes = true)
+		{
+			_renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+			_edgeAntiAlias = _renderer.EdgeAntiAlias;
 #else
 		public NvgContext(INvgRenderer renderer, bool edgeAntiAlias = true, bool stencilStrokes = true)
 		{
 			_renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
-#endif
 			_edgeAntiAlias = edgeAntiAlias;
+#endif
 
 			_renderCache = new RenderCache(stencilStrokes);
 			ResetState();

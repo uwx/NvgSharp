@@ -5,6 +5,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 #elif STRIDE
 using Stride.Core.Mathematics;
+#elif MOONWORKS
+using System.Numerics;
+using Color = MoonWorks.Graphics.Color;
+using Texture2D = MoonWorks.Graphics.Texture;
+
 #else
 using System.Numerics;
 using System.Drawing;

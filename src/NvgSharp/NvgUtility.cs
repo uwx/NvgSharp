@@ -4,6 +4,10 @@ using System;
 using Microsoft.Xna.Framework;
 #elif STRIDE
 using Stride.Core.Mathematics;
+#elif MOONWORKS
+using System.Numerics;
+using Color = MoonWorks.Graphics.Color;
+using Matrix = System.Numerics.Matrix4x4;
 #else
 using System.Drawing;
 using System.Numerics;
@@ -79,7 +83,7 @@ namespace NvgSharp
 
 		public static Color FromRGBA(byte r, byte g, byte b, byte a)
 		{
-#if MONOGAME || FNA || STRIDE
+#if MONOGAME || FNA || STRIDE || MOONWORKS
 			return new Color(r, g, b, a);
 #else
 			return Color.FromArgb(a, r, g, b);

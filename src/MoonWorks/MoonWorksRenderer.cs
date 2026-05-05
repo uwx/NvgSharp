@@ -21,7 +21,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 	{
 		public Vector2 Position;
 		public Vector2 TexCoord;
-
+		
 		public static VertexElementFormat[] Formats =>
 		[
 			VertexElementFormat.Float2,
@@ -59,7 +59,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 	public GraphicsDevice GraphicsDevice => _device;
 
 	private readonly GraphicsDevice _device;
-	private readonly bool _edgeAntiAlias;
+	internal readonly bool EdgeAntiAlias;
 
 	private Shader _vertexShader;
 	private Shader _fragFillGradient, _fragFillImage, _fragSimple, _fragTriangles;
@@ -106,7 +106,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 	)
 	{
 		_device = device;
-		_edgeAntiAlias = edgeAntiAlias;
+		EdgeAntiAlias = edgeAntiAlias;
 		_colorTargetFormat = colorTargetFormat;
 
 		_pointClampSampler = Sampler.Create(device, SamplerCreateInfo.PointClamp);
@@ -123,7 +123,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 
 	private void LoadShaders(TitleStorage storage, string shaderDir)
 	{
-		var defines = _edgeAntiAlias
+		var defines = EdgeAntiAlias
 			? new ShaderCross.HLSLDefine[] { new("EDGE_AA", "1") }
 			: Array.Empty<ShaderCross.HLSLDefine>();
 
@@ -642,7 +642,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		}
 
 		// Pass 2: Anti-aliased fringes (stencil == 0)
-		if (_edgeAntiAlias)
+		if (EdgeAntiAlias)
 		{
 			PushFragmentUniforms(ref Unsafe.AsRef(in call.UniformInfo2));
 			BindTexture(call.UniformInfo2.Image);

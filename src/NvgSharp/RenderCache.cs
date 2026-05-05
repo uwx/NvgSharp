@@ -6,7 +6,6 @@ using Microsoft.Xna.Framework;
 #elif STRIDE
 using Stride.Core.Mathematics;
 #else
-using System.Numerics;
 #endif
 
 namespace NvgSharp

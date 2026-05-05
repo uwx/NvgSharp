@@ -4,7 +4,7 @@
     <PackageId>NvgSharp.Text.MoonWorks</PackageId>
     <AssemblyName>NvgSharp.Text.MoonWorks</AssemblyName>
     <Description>NvgSharp.Text for MoonWorks</Description>
-    <DefineConstants>$(DefineConstants);MOONWORKS;PLATFORM_AGNOSTIC</DefineConstants>
+    <DefineConstants>$(DefineConstants);MOONWORKS</DefineConstants>
     <OutputPath>bin\MoonWorks\$(Configuration)</OutputPath>
   </PropertyGroup>
 

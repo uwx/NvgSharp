@@ -8,6 +8,15 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 #elif STRIDE
 using Stride.Core.Mathematics;
+#elif MOONWORKS
+using System.Drawing;
+using System.Numerics;
+using MoonWorks.Graphics;
+using Color = MoonWorks.Graphics.Color;
+using Texture2D = MoonWorks.Graphics.Texture;
+using Matrix = System.Numerics.Matrix3x2;
+using Texture2DManager = FontStashSharp.MoonWorks.Texture2DManager;
+using VertexPositionColorTexture = FontStashSharp.MoonWorks.MoonWorksRenderer.VertexPositionColorTexture;
 #else
 using System.Numerics;
 using System.Drawing;
@@ -28,7 +37,7 @@ namespace NvgSharp
 			internal int _lastVertexOffset;
 			internal Texture2D _lastTextTexture = null;
 
-			#if MONOGAME || FNA || STRIDE
+			#if MONOGAME || FNA || STRIDE || MOONWORKS
 			public GraphicsDevice GraphicsDevice => _context.GraphicsDevice;
 			#else
 
