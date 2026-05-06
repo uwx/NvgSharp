@@ -334,46 +334,6 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		_viewportHeight = viewportHeight;
 	}
 
-	// INvgRenderer: texture management (platform-agnostic path)
-	public object CreateTexture(int width, int height)
-	{
-		return Texture.Create2D(_device, (uint)width, (uint)height,
-			TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler);
-	}
-
-	public Point GetTextureSize(object texture)
-	{
-		var tex = (Texture)texture;
-		return new Point((int)tex.Width, (int)tex.Height);
-	}
-
-	public void SetTextureData(object texture, Rectangle bounds, byte[] data)
-	{
-		var tex = (Texture)texture;
-		var dataSize = (uint)(bounds.Width * bounds.Height * 4);
-
-		var transferBuffer = TransferBuffer.Create<byte>(_device, TransferBufferUsage.Upload, dataSize);
-		var span = transferBuffer.Map<byte>(false);
-		data.AsSpan(0, (int)dataSize).CopyTo(span);
-		transferBuffer.Unmap();
-
-		var cmd = _device.AcquireCommandBuffer();
-		var copyPass = cmd.BeginCopyPass();
-		copyPass.UploadToTexture(
-			new TextureTransferInfo { TransferBuffer = transferBuffer, Offset = 0 },
-			new TextureRegion
-			{
-				Texture = tex,
-				X = (uint)bounds.X, Y = (uint)bounds.Y,
-				W = (uint)bounds.Width, H = (uint)bounds.Height, D = 1
-			},
-			false
-		);
-		cmd.EndCopyPass(copyPass);
-		_device.Submit(cmd);
-		transferBuffer.Dispose();
-	}
-
 	public void Draw(float devicePixelRatio, IEnumerable<CallInfo> calls, Vertex[] vertexes)
 	{
 		if (_renderPass == null)
@@ -437,9 +397,10 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 
 		var cmd = _device.AcquireCommandBuffer();
 		var copyPass = cmd.BeginCopyPass();
-		copyPass.UploadToBuffer(
-			new TransferBufferLocation(transferBuffer, 0),
-			new BufferRegion(_vertexBuffer, 0, (uint)(vertexes.Length * Marshal.SizeOf<NvgVertex>())),
+		copyPass.UploadToBuffer<NvgVertex>(
+			transferBuffer,
+			_vertexBuffer,
+			0, 0, (uint)vertexes.Length,
 			true
 		);
 		cmd.EndCopyPass(copyPass);
@@ -585,7 +546,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 			_indexBuffer = GpuBuffer.Create<short>(_device, BufferUsageFlags.Index, (uint)_indexBufferCapacity);
 		}
 
-		var transferBuffer = TransferBuffer.Create<short>(_device, TransferBufferUsage.Upload, (uint)indexCount);
+		using var transferBuffer = TransferBuffer.Create<short>(_device, TransferBufferUsage.Upload, (uint)indexCount);
 		var span = transferBuffer.Map<short>(false);
 		indices.AsSpan().CopyTo(span);
 		transferBuffer.Unmap();
@@ -599,7 +560,6 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		);
 		cmd.EndCopyPass(copyPass);
 		_device.Submit(cmd);
-		transferBuffer.Dispose();
 
 		_renderPass.BindIndexBuffer(new BufferBinding(_indexBuffer, 0), IndexElementSize.Sixteen);
 		_renderPass.DrawIndexedPrimitives((uint)indexCount, 1, 0, vertexOffset, 0);

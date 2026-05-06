@@ -5,6 +5,12 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 #elif STRIDE
 using Stride.Graphics;
+#elif MOONWORKS
+using System.Drawing;
+using System.Numerics;
+using Matrix = System.Numerics.Matrix4x4;
+using Texture2D = MoonWorks.Graphics.Texture;
+using MoonWorks.Graphics;
 #else
 using System.Drawing;
 using System.Numerics;
@@ -70,7 +76,7 @@ namespace NvgSharp
 
 	public interface INvgRenderer
 	{
-#if MONOGAME || FNA || STRIDE
+#if MONOGAME || FNA || STRIDE || MOONWORKS
 		GraphicsDevice GraphicsDevice { get; }
 #else
 		/// <summary>
