@@ -1,10 +1,14 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 #if MONOGAME || FNA
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 #elif STRIDE
 using Stride.Core.Mathematics;
+#elif MOONWORKS
+using MoonWorks.Graphics;
+using System.Numerics;
 #else
 using System.Numerics;
 #endif
@@ -13,7 +17,7 @@ namespace NvgSharp
 {
 	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	public struct Vertex
-#if MONOGAME || FNA || STRIDE
+#if MONOGAME || FNA || STRIDE || MOONWORKS
 		: IVertexType
 #endif
 	{
@@ -49,6 +53,14 @@ namespace NvgSharp
 			VertexDeclaration declaration = new VertexDeclaration(elements);
 			VertexDeclaration = declaration;
 		}
+#elif MOONWORKS
+		public static ReadOnlySpan<VertexElementFormat> Formats =>
+		[
+			VertexElementFormat.Float2,
+			VertexElementFormat.Float2
+		];
+
+		public static ReadOnlySpan<uint> Offsets => [0, 8];
 #endif
 	}
 }

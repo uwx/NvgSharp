@@ -28,33 +28,29 @@ namespace NvgSharp
 {
 	public static class NvgText
 	{
-		private class TextRenderer : IFontStashRenderer2
+		private class TextRenderer(NvgContext context) : IFontStashRenderer2
 #if PLATFORM_AGNOSTIC
 		, ITexture2DManager
 #endif
 		{
-			private readonly NvgContext _context;
 			internal int _lastVertexOffset;
 			internal Texture2D _lastTextTexture = null;
+			
+#if MOONWORKS
+			public ResourceUploader ResourceUploader => context.ResourceUploader;
+#endif
 
-			#if MONOGAME || FNA || STRIDE || MOONWORKS
-			public GraphicsDevice GraphicsDevice => _context.GraphicsDevice;
-			#else
-
+#if MONOGAME || FNA || STRIDE || MOONWORKS
+			public GraphicsDevice GraphicsDevice => context.GraphicsDevice;
+#else
 			public ITexture2DManager TextureManager => this;
 
-			public object CreateTexture(int width, int height) => _context._renderer.CreateTexture(width, height);
+			public object CreateTexture(int width, int height) => context._renderer.CreateTexture(width, height);
 
-			public Point GetTextureSize(object texture) => _context._renderer.GetTextureSize(texture);
+			public Point GetTextureSize(object texture) => context._renderer.GetTextureSize(texture);
 
-			public void SetTextureData(object texture, Rectangle bounds, byte[] data) => _context._renderer.SetTextureData(texture, bounds, data);
-
-			#endif
-
-			public TextRenderer(NvgContext context)
-			{
-				_context = context;
-			}
+			public void SetTextureData(object texture, Rectangle bounds, byte[] data) => context._renderer.SetTextureData(texture, bounds, data);
+#endif
 
 			public void DrawQuad(Texture2D texture, ref VertexPositionColorTexture topLeft, ref VertexPositionColorTexture topRight,
 				ref VertexPositionColorTexture bottomLeft, ref VertexPositionColorTexture bottomRight)
@@ -64,7 +60,7 @@ namespace NvgSharp
 					FlushText();
 				}
 
-				var state = _context._currentState;
+				var state = context._currentState;
 
 				float px, py;
 				state.Transform.TransformPoint(out px, out py, topLeft.Position.X, topLeft.Position.Y);
@@ -87,7 +83,7 @@ namespace NvgSharp
 				py = (int)py;
 				var newBottomLeft = new Vertex(px, py, bottomLeft.TextureCoordinate.X, bottomLeft.TextureCoordinate.Y);
 
-				var renderCache = _context._renderCache;
+				var renderCache = context._renderCache;
 				renderCache.AddVertex(newTopLeft);
 				renderCache.AddVertex(newBottomRight);
 				renderCache.AddVertex(newTopRight);
@@ -100,20 +96,20 @@ namespace NvgSharp
 
 			private void FlushText()
 			{
-				var renderCache = _context._renderCache;
+				var renderCache = context._renderCache;
 				if (_lastTextTexture == null || _lastVertexOffset == renderCache.VertexCount)
 				{
 					return;
 				}
 
-				var state = _context._currentState;
+				var state = context._currentState;
 				var paint = state.Fill;
 				paint.Image = _lastTextTexture;
 
 				NvgContext.MultiplyAlpha(ref paint.InnerColor, state.Alpha);
 				NvgContext.MultiplyAlpha(ref paint.OuterColor, state.Alpha);
 
-				renderCache.RenderTriangles(ref paint, ref state.Scissor, _context._fringeWidth, _lastVertexOffset, renderCache.VertexCount - _lastVertexOffset);
+				renderCache.RenderTriangles(ref paint, ref state.Scissor, context._fringeWidth, _lastVertexOffset, renderCache.VertexCount - _lastVertexOffset);
 
 				_lastVertexOffset = renderCache.VertexCount;
 				_lastTextTexture = null;
@@ -127,7 +123,7 @@ namespace NvgSharp
 					return;
 				}
 
-				_lastVertexOffset = _context._renderCache.VertexCount;
+				_lastVertexOffset = context._renderCache.VertexCount;
 
 				if (text.StringText != null)
 				{

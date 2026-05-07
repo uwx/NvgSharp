@@ -66,6 +66,10 @@ namespace NvgSharp
 				_renderCache.DevicePixelRatio = value;
 			}
 		}
+		
+#if MOONWORKS
+		public ResourceUploader ResourceUploader => _renderer.ResourceUploader;
+#endif
 
 #if MONOGAME || FNA || STRIDE || MOONWORKS
 		public GraphicsDevice GraphicsDevice => _renderer.GraphicsDevice;

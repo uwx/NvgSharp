@@ -14,23 +14,8 @@ namespace NvgSharp;
 /// MoonWorks implementation of INvgRenderer for NanoVG 2D vector rendering.
 /// Handles stencil-based path fills, gradient/image painting, and anti-aliased strokes.
 /// </summary>
-public class MoonWorksRenderer : INvgRenderer, IDisposable
+public class MoonWorksRenderer : IDisposable
 {
-	[StructLayout(LayoutKind.Sequential)]
-	private struct NvgVertex : IVertexType
-	{
-		public Vector2 Position;
-		public Vector2 TexCoord;
-		
-		public static VertexElementFormat[] Formats =>
-		[
-			VertexElementFormat.Float2,
-			VertexElementFormat.Float2
-		];
-
-		public static uint[] Offsets => [0, 8];
-	}
-
 	[StructLayout(LayoutKind.Sequential)]
 	private struct VertexUniforms
 	{
@@ -56,9 +41,8 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		public float _pad1;
 	}
 
-	public GraphicsDevice GraphicsDevice => _device;
+	public readonly GraphicsDevice GraphicsDevice;
 
-	private readonly GraphicsDevice _device;
 	internal readonly bool EdgeAntiAlias;
 
 	private Shader _vertexShader;
@@ -79,10 +63,13 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 	private Sampler _pointClampSampler;
 
 	private GpuBuffer _vertexBuffer;
-	private GpuBuffer _indexBuffer;
+	private GpuBuffer _fanIndexBuffer;
+	private GpuBuffer _stripIndexBuffer;
 	private int _vertexBufferCapacity;
-	private int _indexBufferCapacity;
+	private int _fanIndexBufferCapacity;
+	private int _stripIndexBufferCapacity;
 	private short[] _triangleFanIndices;
+	private short[] _triangleStripIndices;
 
 	// The current render pass context (set by caller)
 	private RenderPass _renderPass;
@@ -96,18 +83,23 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 
 	// The color target format (must match the render target)
 	private TextureFormat _colorTargetFormat;
+	
+	// The possibly-shared resource uploader for uploading textures & buffers
+	public readonly ResourceUploader ResourceUploader;
 
 	public MoonWorksRenderer(
 		GraphicsDevice device,
 		TitleStorage storage,
 		string shaderDir,
 		TextureFormat colorTargetFormat,
+		ResourceUploader resourceUploader,
 		bool edgeAntiAlias = true
 	)
 	{
-		_device = device;
+		GraphicsDevice = device;
 		EdgeAntiAlias = edgeAntiAlias;
 		_colorTargetFormat = colorTargetFormat;
+		ResourceUploader = resourceUploader;
 
 		_pointClampSampler = Sampler.Create(device, SamplerCreateInfo.PointClamp);
 
@@ -115,10 +107,16 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		CreatePipelines();
 
 		_vertexBufferCapacity = 4096;
-		_indexBufferCapacity = 4096 * 6;
-		_vertexBuffer = GpuBuffer.Create<NvgVertex>(device, BufferUsageFlags.Vertex, (uint)_vertexBufferCapacity);
-		_indexBuffer = GpuBuffer.Create<short>(device, BufferUsageFlags.Index, (uint)_indexBufferCapacity);
+		_fanIndexBufferCapacity = ((4096 * 6) - 2) * 3;
+		_stripIndexBufferCapacity  = ((4096 * 4) - 2) * 3;
+		_vertexBuffer = GpuBuffer.Create<Vertex>(device, BufferUsageFlags.Vertex, (uint)_vertexBufferCapacity);
+		_fanIndexBuffer = GpuBuffer.Create<short>(device, BufferUsageFlags.Index, (uint)_fanIndexBufferCapacity);
+		_stripIndexBuffer = GpuBuffer.Create<short>(device, BufferUsageFlags.Index, (uint)_stripIndexBufferCapacity);
 		_triangleFanIndices = BuildTriangleFanIndexBuffer(2048 * 6);
+		_triangleStripIndices = BuildTriangleStripIndexBuffer(2048 * 4);
+		
+		ResourceUploader.SetBufferData(_fanIndexBuffer, 0, _triangleFanIndices, false);
+		ResourceUploader.SetBufferData(_stripIndexBuffer, 0, _triangleStripIndices, false);
 	}
 
 	private void LoadShaders(TitleStorage storage, string shaderDir)
@@ -128,7 +126,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 			: Array.Empty<ShaderCross.HLSLDefine>();
 
 		_vertexShader = ShaderCross.Create(
-			_device, storage,
+			GraphicsDevice, storage,
 			$"{shaderDir}/Nvg.vert.hlsl", "main",
 			ShaderCross.ShaderFormat.HLSL, ShaderStage.Vertex,
 			name: "NvgVert",
@@ -136,28 +134,28 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 			defines: defines
 		);
 
-		_fragFillGradient = ShaderCross.Create(_device, storage,
+		_fragFillGradient = ShaderCross.Create(GraphicsDevice, storage,
 			$"{shaderDir}/NvgFillGradient.frag.hlsl", "main",
 			ShaderCross.ShaderFormat.HLSL, ShaderStage.Fragment,
 			name: "NvgFillGradient",
 			includeDir: shaderDir,
 			defines: defines);
 
-		_fragFillImage = ShaderCross.Create(_device, storage,
+		_fragFillImage = ShaderCross.Create(GraphicsDevice, storage,
 			$"{shaderDir}/NvgFillImage.frag.hlsl", "main",
 			ShaderCross.ShaderFormat.HLSL, ShaderStage.Fragment,
 			name: "NvgFillImage",
 			includeDir: shaderDir,
 			defines: defines);
 
-		_fragSimple = ShaderCross.Create(_device, storage,
+		_fragSimple = ShaderCross.Create(GraphicsDevice, storage,
 			$"{shaderDir}/NvgSimple.frag.hlsl", "main",
 			ShaderCross.ShaderFormat.HLSL, ShaderStage.Fragment,
 			name: "NvgSimple",
 			includeDir: shaderDir,
 			defines: defines);
 
-		_fragTriangles = ShaderCross.Create(_device, storage,
+		_fragTriangles = ShaderCross.Create(GraphicsDevice, storage,
 			$"{shaderDir}/NvgTriangles.frag.hlsl", "main",
 			ShaderCross.ShaderFormat.HLSL, ShaderStage.Fragment,
 			name: "NvgTriangles",
@@ -167,7 +165,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 
 	private void CreatePipelines()
 	{
-		var vertexInput = VertexInputState.CreateSingleBinding<NvgVertex>();
+		var vertexInput = VertexInputState.CreateSingleBinding<Vertex>();
 
 		var colorTargetAlphaBlend = new ColorTargetDescription
 		{
@@ -287,7 +285,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		ColorTargetDescription colorTarget, DepthStencilState depthStencil,
 		RasterizerState rasterizer, TextureFormat dsFormat)
 	{
-		return GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
+		return GraphicsPipeline.Create(GraphicsDevice, new GraphicsPipelineCreateInfo
 		{
 			Name = name,
 			VertexShader = _vertexShader,
@@ -316,7 +314,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 
 		_depthStencilTexture?.Dispose();
 		_depthStencilTexture = Texture.Create2D(
-			_device, width, height,
+			GraphicsDevice, width, height,
 			TextureFormat.D24UnormS8Uint,
 			TextureUsageFlags.DepthStencilTarget
 		);
@@ -334,20 +332,36 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		_viewportHeight = viewportHeight;
 	}
 
-	public void Draw(float devicePixelRatio, IEnumerable<CallInfo> calls, Vertex[] vertexes)
+	public void Draw(float devicePixelRatio, List<CallInfo> calls, Vertex[] vertexes)
 	{
 		if (_renderPass == null)
-			return;
+			throw new InvalidOperationException($"Called {nameof(Draw)} outside of a render pass, call {nameof(SetRenderContext)} first");
 
 		// Upload vertex data
 		UploadVertices(vertexes);
+		
+		// Scan calls to determine max fan and strip vertex counts needed
+		int maxFanVerts = 0;
+		int maxStripVerts = 0;
+		foreach (var call in calls)
+		{
+			foreach (var info in call.FillStrokeInfos)
+			{
+				if (info.FillCount > maxFanVerts) maxFanVerts = info.FillCount;
+				if (info.StrokeCount > maxStripVerts) maxStripVerts = info.StrokeCount;
+			}
+
+			if (call.TriangleCount > maxStripVerts && call.Type is CallType.Fill)
+				maxStripVerts = call.TriangleCount;
+		}
+		UploadIndices(maxFanVerts, maxStripVerts);
 
 		// Set orthographic transform
 		var transform = Matrix4x4.CreateOrthographicOffCenter(0, _viewportWidth, _viewportHeight, 0, 0, -1);
 		_commandBuffer.PushVertexUniformData(new VertexUniforms { TransformMat = transform });
 
 		_renderPass.SetViewport(new Viewport { X = 0, Y = 0, W = _viewportWidth, H = _viewportHeight, MinDepth = 0, MaxDepth = 1 });
-		_renderPass.BindVertexBuffers(new BufferBinding(_vertexBuffer, 0));
+		_renderPass.BindVertexBuffers(_vertexBuffer);
 
 		foreach (var call in calls)
 		{
@@ -378,69 +392,55 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		{
 			_vertexBuffer.Dispose();
 			_vertexBufferCapacity = vertexes.Length * 2;
-			_vertexBuffer = GpuBuffer.Create<NvgVertex>(_device, BufferUsageFlags.Vertex, (uint)_vertexBufferCapacity);
+			_vertexBuffer = GpuBuffer.Create<Vertex>(GraphicsDevice, BufferUsageFlags.Vertex, (uint)_vertexBufferCapacity);
 		}
 
-		var transferBuffer = TransferBuffer.Create<NvgVertex>(_device, TransferBufferUsage.Upload, (uint)vertexes.Length);
-		var span = transferBuffer.Map<NvgVertex>(false);
-
-		for (int i = 0; i < vertexes.Length; i++)
-		{
-			span[i] = new NvgVertex
-			{
-				Position = vertexes[i].Position,
-				TexCoord = vertexes[i].TextureCoordinate
-			};
-		}
-
-		transferBuffer.Unmap();
-
-		var cmd = _device.AcquireCommandBuffer();
-		var copyPass = cmd.BeginCopyPass();
-		copyPass.UploadToBuffer<NvgVertex>(
-			transferBuffer,
-			_vertexBuffer,
-			0, 0, (uint)vertexes.Length,
-			true
-		);
-		cmd.EndCopyPass(copyPass);
-		_device.Submit(cmd);
-		transferBuffer.Dispose();
+		ResourceUploader.SetBufferData(_vertexBuffer, 0, vertexes, true);
 	}
 
-	private void UploadIndices(int vertexCount)
+	private void UploadIndices(int fanVertexCount, int stripVertexCount)
 	{
-		// Ensure triangle fan indices are big enough
-		if (vertexCount > _triangleFanIndices.Length / 3 + 2)
 		{
-			_triangleFanIndices = BuildTriangleFanIndexBuffer(vertexCount);
+			// Ensure triangle fan indices are big enough
+			if (fanVertexCount > _triangleFanIndices.Length / 3 + 2)
+			{
+				_triangleFanIndices = BuildTriangleFanIndexBuffer(fanVertexCount);
+			}
+
+			int indexCount = (fanVertexCount - 2) * 3;
+			if (indexCount <= 0) return;
+
+			if (indexCount > _fanIndexBufferCapacity)
+			{
+				_fanIndexBuffer.Dispose();
+				_fanIndexBufferCapacity = indexCount * 2;
+				_fanIndexBuffer =
+					GpuBuffer.Create<short>(GraphicsDevice, BufferUsageFlags.Index, (uint)_fanIndexBufferCapacity);
+			}
+			
+			ResourceUploader.SetBufferData(_fanIndexBuffer, 0, _triangleFanIndices, true);
 		}
 
-		int indexCount = (vertexCount - 2) * 3;
-		if (indexCount <= 0) return;
-
-		if (indexCount > _indexBufferCapacity)
 		{
-			_indexBuffer.Dispose();
-			_indexBufferCapacity = indexCount * 2;
-			_indexBuffer = GpuBuffer.Create<short>(_device, BufferUsageFlags.Index, (uint)_indexBufferCapacity);
+			if (stripVertexCount > _triangleStripIndices.Length / 3 + 2)
+			{
+				_triangleStripIndices = BuildTriangleStripIndexBuffer(fanVertexCount);
+			}
+			
+			int indexCount = (stripVertexCount - 2) * 3;
+			if (indexCount <= 0) return;
+
+			if (indexCount > _stripIndexBufferCapacity)
+			{
+				_stripIndexBuffer.Dispose();
+				_stripIndexBufferCapacity = indexCount * 2;
+				_stripIndexBuffer =
+					GpuBuffer.Create<short>(GraphicsDevice, BufferUsageFlags.Index, (uint)_stripIndexBufferCapacity);
+			}
+			
+			ResourceUploader.SetBufferData(_stripIndexBuffer, 0, _triangleStripIndices, true);
 		}
-
-		var transferBuffer = TransferBuffer.Create<short>(_device, TransferBufferUsage.Upload, (uint)indexCount);
-		var span = transferBuffer.Map<short>(false);
-		_triangleFanIndices.AsSpan(0, indexCount).CopyTo(span);
-		transferBuffer.Unmap();
-
-		var cmd = _device.AcquireCommandBuffer();
-		var copyPass = cmd.BeginCopyPass();
-		copyPass.UploadToBuffer(
-			new TransferBufferLocation(transferBuffer, 0),
-			new BufferRegion(_indexBuffer, 0, (uint)(indexCount * sizeof(short))),
-			true
-		);
-		cmd.EndCopyPass(copyPass);
-		_device.Submit(cmd);
-		transferBuffer.Dispose();
+		
 	}
 
 	private void PushFragmentUniforms(ref UniformInfo uniform)
@@ -461,11 +461,11 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		});
 	}
 
-	private void BindTexture(object image)
+	private void BindTexture(Texture image)
 	{
-		if (image is Texture tex)
+		if (image != null)
 		{
-			_renderPass.BindFragmentSamplers(new TextureSamplerBinding(tex, _pointClampSampler));
+			_renderPass.BindFragmentSamplers(new TextureSamplerBinding(image, _pointClampSampler));
 		}
 	}
 
@@ -476,93 +476,38 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		int maxFanVerts = _triangleFanIndices.Length / 3 + 2;
 		if (vertexCount > maxFanVerts)
 		{
-			_triangleFanIndices = BuildTriangleFanIndexBuffer(vertexCount);
+			ThrowInvalidVerts(nameof(maxFanVerts));
 		}
 
 		// For triangle fans with offset, we need to use indices relative to 0
 		// and pass vertexOffset to DrawIndexedPrimitives
 		int indexCount = (vertexCount - 2) * 3;
-		UploadFanIndices(indexCount);
 
-		_renderPass.BindIndexBuffer(new BufferBinding(_indexBuffer, 0), IndexElementSize.Sixteen);
+		_renderPass.BindIndexBuffer(_fanIndexBuffer, IndexElementSize.Sixteen);
 		_renderPass.DrawIndexedPrimitives((uint)indexCount, 1, 0, vertexOffset, 0);
-	}
-
-	private void UploadFanIndices(int indexCount)
-	{
-		if (indexCount > _indexBufferCapacity)
-		{
-			_indexBuffer.Dispose();
-			_indexBufferCapacity = indexCount * 2;
-			_indexBuffer = GpuBuffer.Create<short>(_device, BufferUsageFlags.Index, (uint)_indexBufferCapacity);
-		}
-
-		var transferBuffer = TransferBuffer.Create<short>(_device, TransferBufferUsage.Upload, (uint)indexCount);
-		var span = transferBuffer.Map<short>(false);
-		_triangleFanIndices.AsSpan(0, indexCount).CopyTo(span);
-		transferBuffer.Unmap();
-
-		var cmd = _device.AcquireCommandBuffer();
-		var copyPass = cmd.BeginCopyPass();
-		copyPass.UploadToBuffer(
-			new TransferBufferLocation(transferBuffer, 0),
-			new BufferRegion(_indexBuffer, 0, (uint)(indexCount * sizeof(short))),
-			true
-		);
-		cmd.EndCopyPass(copyPass);
-		_device.Submit(cmd);
-		transferBuffer.Dispose();
 	}
 
 	private void DrawTriangleStrip(int vertexOffset, int vertexCount)
 	{
 		if (vertexCount < 3) return;
-
-		// Convert triangle strip to triangle list via indices
-		int triangleCount = vertexCount - 2;
-		int indexCount = triangleCount * 3;
-		var indices = new short[indexCount];
-
-		for (int i = 0; i < triangleCount; i++)
+		
+		int maxStripVerts = _triangleStripIndices.Length / 3 + 2;
+		if (vertexCount > maxStripVerts)
 		{
-			if (i % 2 == 0)
-			{
-				indices[i * 3 + 0] = (short)i;
-				indices[i * 3 + 1] = (short)(i + 1);
-				indices[i * 3 + 2] = (short)(i + 2);
-			}
-			else
-			{
-				indices[i * 3 + 0] = (short)(i + 1);
-				indices[i * 3 + 1] = (short)i;
-				indices[i * 3 + 2] = (short)(i + 2);
-			}
+			ThrowInvalidVerts(nameof(maxStripVerts));
 		}
 
-		if (indexCount > _indexBufferCapacity)
-		{
-			_indexBuffer.Dispose();
-			_indexBufferCapacity = indexCount * 2;
-			_indexBuffer = GpuBuffer.Create<short>(_device, BufferUsageFlags.Index, (uint)_indexBufferCapacity);
-		}
+		// For triangle strips with offset, we need to use indices relative to 0
+		// and pass vertexOffset to DrawIndexedPrimitives
+		int indexCount = (vertexCount - 2) * 3;
 
-		using var transferBuffer = TransferBuffer.Create<short>(_device, TransferBufferUsage.Upload, (uint)indexCount);
-		var span = transferBuffer.Map<short>(false);
-		indices.AsSpan().CopyTo(span);
-		transferBuffer.Unmap();
-
-		var cmd = _device.AcquireCommandBuffer();
-		var copyPass = cmd.BeginCopyPass();
-		copyPass.UploadToBuffer(
-			new TransferBufferLocation(transferBuffer, 0),
-			new BufferRegion(_indexBuffer, 0, (uint)(indexCount * sizeof(short))),
-			true
-		);
-		cmd.EndCopyPass(copyPass);
-		_device.Submit(cmd);
-
-		_renderPass.BindIndexBuffer(new BufferBinding(_indexBuffer, 0), IndexElementSize.Sixteen);
+		_renderPass.BindIndexBuffer(_stripIndexBuffer, IndexElementSize.Sixteen);
 		_renderPass.DrawIndexedPrimitives((uint)indexCount, 1, 0, vertexOffset, 0);
+	}
+
+	private static void ThrowInvalidVerts(string paramName)
+	{
+		throw new InvalidOperationException($"vertex count > {paramName} which should be impossible if the correct buffer is uploaded");
 	}
 
 	private void DrawTriangleList(int vertexOffset, int vertexCount)
@@ -579,9 +524,8 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 		var pipeline = call.UniformInfo.Image != null ? _pipelineFillImage : _pipelineFillGradient;
 		_renderPass.BindGraphicsPipeline(pipeline);
 
-		for (var i = 0; i < call.FillStrokeInfos.Count; i++)
+		foreach (var info in call.FillStrokeInfos)
 		{
-			var info = call.FillStrokeInfos[i];
 			DrawTriangleFan(info.FillOffset, info.FillCount);
 			if (info.StrokeCount > 0)
 				DrawTriangleStrip(info.StrokeOffset, info.StrokeCount);
@@ -611,9 +555,8 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 			_renderPass.BindGraphicsPipeline(aaPipeline);
 			_renderPass.SetStencilReference(0);
 
-			for (var i = 0; i < call.FillStrokeInfos.Count; i++)
+			foreach (var info in call.FillStrokeInfos)
 			{
-				var info = call.FillStrokeInfos[i];
 				if (info.StrokeCount > 0)
 					DrawTriangleStrip(info.StrokeOffset, info.StrokeCount);
 			}
@@ -654,6 +597,8 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 	private static short[] BuildTriangleFanIndexBuffer(int maxVertexCount)
 	{
 		if (maxVertexCount < 3) return [];
+		
+		// Convert triangle fan to triangle list via indices
 		var result = new short[(maxVertexCount - 2) * 3];
 		for (var j = 2; j < maxVertexCount; ++j)
 		{
@@ -662,6 +607,34 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 			result[((j - 2) * 3) + 2] = (short)j;
 		}
 		return result;
+	}
+	
+	private static short[] BuildTriangleStripIndexBuffer(int maxVertexCount)
+	{
+		if (maxVertexCount < 3) return [];
+		
+		// Convert triangle strip to triangle list via indices
+		int triangleCount = maxVertexCount - 2;
+		int indexCount = triangleCount * 3;
+		var indices = new short[indexCount];
+
+		for (int i = 0; i < triangleCount; i++)
+		{
+			if (i % 2 == 0)
+			{
+				indices[i * 3 + 0] = (short)i;
+				indices[i * 3 + 1] = (short)(i + 1);
+			}
+			else
+			{
+				indices[i * 3 + 0] = (short)(i + 1);
+				indices[i * 3 + 1] = (short)i;
+			}
+
+			indices[i * 3 + 2] = (short)(i + 2);
+		}
+		
+		return indices;
 	}
 
 	public void Dispose()
@@ -683,7 +656,7 @@ public class MoonWorksRenderer : INvgRenderer, IDisposable
 
 		_pointClampSampler?.Dispose();
 		_vertexBuffer?.Dispose();
-		_indexBuffer?.Dispose();
+		_fanIndexBuffer?.Dispose();
 		_depthStencilTexture?.Dispose();
 	}
 }
