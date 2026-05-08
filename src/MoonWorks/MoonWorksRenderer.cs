@@ -83,7 +83,7 @@ public class MoonWorksRenderer : IDisposable
 
 	// The color target format (must match the render target)
 	private TextureFormat _colorTargetFormat;
-	
+
 	// The possibly-shared resource uploader for uploading textures & buffers
 	public readonly ResourceUploader ResourceUploader;
 
@@ -114,9 +114,9 @@ public class MoonWorksRenderer : IDisposable
 		_stripIndexBuffer = GpuBuffer.Create<short>(device, BufferUsageFlags.Index, (uint)_stripIndexBufferCapacity);
 		_triangleFanIndices = BuildTriangleFanIndexBuffer(2048 * 6);
 		_triangleStripIndices = BuildTriangleStripIndexBuffer(2048 * 4);
-		
-		ResourceUploader.SetBufferData(_fanIndexBuffer, 0, _triangleFanIndices, false);
-		ResourceUploader.SetBufferData(_stripIndexBuffer, 0, _triangleStripIndices, false);
+
+		ResourceUploader.SetBufferData(_fanIndexBuffer, 0, _triangleFanIndices);
+		ResourceUploader.SetBufferData(_stripIndexBuffer, 0, _triangleStripIndices);
 	}
 
 	private void LoadShaders(TitleStorage storage, string shaderDir)
@@ -339,7 +339,7 @@ public class MoonWorksRenderer : IDisposable
 
 		// Upload vertex data
 		UploadVertices(vertexes);
-		
+
 		// Scan calls to determine max fan and strip vertex counts needed
 		int maxFanVerts = 0;
 		int maxStripVerts = 0;
@@ -355,6 +355,9 @@ public class MoonWorksRenderer : IDisposable
 				maxStripVerts = call.TriangleCount;
 		}
 		UploadIndices(maxFanVerts, maxStripVerts);
+
+		// Flush uploads so the cycle completes and buffer bindings pick up the new backing store.
+		ResourceUploader.Upload();
 
 		// Set orthographic transform
 		var transform = Matrix4x4.CreateOrthographicOffCenter(0, _viewportWidth, _viewportHeight, 0, 0, -1);
@@ -395,7 +398,7 @@ public class MoonWorksRenderer : IDisposable
 			_vertexBuffer = GpuBuffer.Create<Vertex>(GraphicsDevice, BufferUsageFlags.Vertex, (uint)_vertexBufferCapacity);
 		}
 
-		ResourceUploader.SetBufferData(_vertexBuffer, 0, vertexes, true);
+		ResourceUploader.SetBufferData(_vertexBuffer, 0, vertexes);
 	}
 
 	private void UploadIndices(int fanVertexCount, int stripVertexCount)
@@ -417,8 +420,8 @@ public class MoonWorksRenderer : IDisposable
 				_fanIndexBuffer =
 					GpuBuffer.Create<short>(GraphicsDevice, BufferUsageFlags.Index, (uint)_fanIndexBufferCapacity);
 			}
-			
-			ResourceUploader.SetBufferData(_fanIndexBuffer, 0, _triangleFanIndices, true);
+
+			ResourceUploader.SetBufferData(_fanIndexBuffer, 0, _triangleFanIndices);
 		}
 
 		{
@@ -426,7 +429,7 @@ public class MoonWorksRenderer : IDisposable
 			{
 				_triangleStripIndices = BuildTriangleStripIndexBuffer(fanVertexCount);
 			}
-			
+
 			int indexCount = (stripVertexCount - 2) * 3;
 			if (indexCount <= 0) return;
 
@@ -437,10 +440,10 @@ public class MoonWorksRenderer : IDisposable
 				_stripIndexBuffer =
 					GpuBuffer.Create<short>(GraphicsDevice, BufferUsageFlags.Index, (uint)_stripIndexBufferCapacity);
 			}
-			
-			ResourceUploader.SetBufferData(_stripIndexBuffer, 0, _triangleStripIndices, true);
+
+			ResourceUploader.SetBufferData(_stripIndexBuffer, 0, _triangleStripIndices);
 		}
-		
+
 	}
 
 	private void PushFragmentUniforms(ref UniformInfo uniform)
@@ -490,7 +493,7 @@ public class MoonWorksRenderer : IDisposable
 	private void DrawTriangleStrip(int vertexOffset, int vertexCount)
 	{
 		if (vertexCount < 3) return;
-		
+
 		int maxStripVerts = _triangleStripIndices.Length / 3 + 2;
 		if (vertexCount > maxStripVerts)
 		{
@@ -597,7 +600,7 @@ public class MoonWorksRenderer : IDisposable
 	private static short[] BuildTriangleFanIndexBuffer(int maxVertexCount)
 	{
 		if (maxVertexCount < 3) return [];
-		
+
 		// Convert triangle fan to triangle list via indices
 		var result = new short[(maxVertexCount - 2) * 3];
 		for (var j = 2; j < maxVertexCount; ++j)
@@ -608,11 +611,11 @@ public class MoonWorksRenderer : IDisposable
 		}
 		return result;
 	}
-	
+
 	private static short[] BuildTriangleStripIndexBuffer(int maxVertexCount)
 	{
 		if (maxVertexCount < 3) return [];
-		
+
 		// Convert triangle strip to triangle list via indices
 		int triangleCount = maxVertexCount - 2;
 		int indexCount = triangleCount * 3;
@@ -633,7 +636,7 @@ public class MoonWorksRenderer : IDisposable
 
 			indices[i * 3 + 2] = (short)(i + 2);
 		}
-		
+
 		return indices;
 	}
 
