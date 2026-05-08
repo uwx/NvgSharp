@@ -87,6 +87,9 @@ public class MoonWorksRenderer : IDisposable
 	// The possibly-shared resource uploader for uploading textures & buffers
 	public readonly ResourceUploader ResourceUploader;
 
+	// The depth-stencil format used for stencil fill pipelines
+	private readonly TextureFormat _depthStencilFormat;
+
 	public MoonWorksRenderer(
 		GraphicsDevice device,
 		TitleStorage storage,
@@ -99,6 +102,7 @@ public class MoonWorksRenderer : IDisposable
 		GraphicsDevice = device;
 		EdgeAntiAlias = edgeAntiAlias;
 		_colorTargetFormat = colorTargetFormat;
+		_depthStencilFormat = device.SupportedDepthStencilFormat;
 		ResourceUploader = resourceUploader;
 
 		_pointClampSampler = Sampler.Create(device, SamplerCreateInfo.PointClamp);
@@ -179,7 +183,7 @@ public class MoonWorksRenderer : IDisposable
 			BlendState = ColorTargetBlendState.NoWrite
 		};
 
-		var dsFormat = TextureFormat.D24UnormS8Uint;
+		var dsFormat = _depthStencilFormat;
 		var rasterCullNone = RasterizerState.CCW_CullNone;
 
 		// Standard draw pipelines (no stencil)
@@ -298,7 +302,7 @@ public class MoonWorksRenderer : IDisposable
 			TargetInfo = new GraphicsPipelineTargetInfo
 			{
 				ColorTargetDescriptions = [colorTarget],
-				HasDepthStencilTarget = depthStencil.EnableStencilTest,
+				HasDepthStencilTarget = true,
 				DepthStencilFormat = dsFormat
 			}
 		});
@@ -307,6 +311,8 @@ public class MoonWorksRenderer : IDisposable
 	/// <summary>
 	/// Ensures the depth-stencil texture matches the given dimensions. Recreates if needed.
 	/// </summary>
+	public Texture DepthStencilTexture => _depthStencilTexture;
+
 	public void EnsureDepthStencilTexture(uint width, uint height)
 	{
 		if (_depthStencilTexture != null && _depthStencilTexture.Width == width && _depthStencilTexture.Height == height)
@@ -315,7 +321,7 @@ public class MoonWorksRenderer : IDisposable
 		_depthStencilTexture?.Dispose();
 		_depthStencilTexture = Texture.Create2D(
 			GraphicsDevice, width, height,
-			TextureFormat.D24UnormS8Uint,
+			_depthStencilFormat,
 			TextureUsageFlags.DepthStencilTarget
 		);
 	}
