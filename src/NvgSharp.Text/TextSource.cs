@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using FontStashSharp;
 
 namespace NvgSharp
 {
@@ -9,6 +10,14 @@ namespace NvgSharp
 		public StringBuilder StringBuilderText;
 		public ReadOnlySpan<char> SpanText;
 		private int Position;
+
+		public TextSource(StringSegment segment)
+		{
+			StringText = null;
+			StringBuilderText = null;
+			SpanText = segment.String.AsSpan(segment.Offset, segment.Length);
+			Position = 0;
+		}
 
 		public TextSource(string text)
 		{

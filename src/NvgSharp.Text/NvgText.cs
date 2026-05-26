@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using FontStashSharp;
 using FontStashSharp.Interfaces;
 using FontStashSharp.RichText;
@@ -164,6 +165,16 @@ namespace NvgSharp
 		}
 
 		public static void Text(this NvgContext context, SpriteFontBase font, string text, float x, float y,
+			float layerDepth = 0.0f, float characterSpacing = 0.0f, float lineSpacing = 0.0f,
+			TextStyle textStyle = TextStyle.None, FontSystemEffect effect = FontSystemEffect.None, int effectAmount = 0) =>
+			Text(context, font, new TextSource(text), x, y, layerDepth, characterSpacing, lineSpacing, textStyle, effect, effectAmount);
+
+		public static void Text(this NvgContext context, SpriteFontBase font, ReadOnlySpan<char> text, float x, float y,
+			float layerDepth = 0.0f, float characterSpacing = 0.0f, float lineSpacing = 0.0f,
+			TextStyle textStyle = TextStyle.None, FontSystemEffect effect = FontSystemEffect.None, int effectAmount = 0) =>
+			Text(context, font, new TextSource(text), x, y, layerDepth, characterSpacing, lineSpacing, textStyle, effect, effectAmount);
+
+		public static void Text(this NvgContext context, SpriteFontBase font, StringSegment text, float x, float y,
 			float layerDepth = 0.0f, float characterSpacing = 0.0f, float lineSpacing = 0.0f,
 			TextStyle textStyle = TextStyle.None, FontSystemEffect effect = FontSystemEffect.None, int effectAmount = 0) =>
 			Text(context, font, new TextSource(text), x, y, layerDepth, characterSpacing, lineSpacing, textStyle, effect, effectAmount);
