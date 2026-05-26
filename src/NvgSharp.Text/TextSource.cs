@@ -41,7 +41,7 @@ namespace NvgSharp
 			Position = 0;
 		}
 
-		public bool IsNull => StringText == null && StringBuilderText == null;
+		public bool IsNull => StringText == null && StringBuilderText == null && SpanText.IsEmpty;
 
 		public int Length
 		{
@@ -55,6 +55,11 @@ namespace NvgSharp
 				if (StringBuilderText != null)
 				{
 					return StringBuilderText.Length;
+				}
+
+				if (!SpanText.IsEmpty)
+				{
+					return SpanText.Length;
 				}
 
 				return 0;
@@ -86,6 +91,19 @@ namespace NvgSharp
 
 				result = StringBuilderConvertToUtf32(StringBuilderText, Position);
 				Position += StringBuilderIsSurrogatePair(StringBuilderText, Position) ? 2 : 1;
+				return true;
+			}
+
+			if (!SpanText.IsEmpty)
+			{
+				if (Position >= SpanText.Length)
+				{
+					return false;
+				}
+				
+				Rune.DecodeFromUtf16(SpanText[Position..], out var rune, out var charsConsumed);
+				result = rune.Value;
+				Position += charsConsumed;
 				return true;
 			}
 
