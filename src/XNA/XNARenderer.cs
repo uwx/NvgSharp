@@ -123,7 +123,14 @@ namespace NvgSharp
 				_device.BlendState = BlendState.AlphaBlend;
 				_device.DepthStencilState = DepthStencilState.None;
 				_device.RasterizerState = RasterizerState.CullNone;
-				_device.SamplerStates[0] = SamplerState.PointClamp;
+				_device.SamplerStates[0] = new SamplerState
+				{
+					Filter = TextureFilter.Anisotropic,
+					AddressU = TextureAddressMode.Clamp,
+					AddressV = TextureAddressMode.Clamp,
+					AddressW = TextureAddressMode.Clamp,
+					MipMapLevelOfDetailBias = -1.0f  // prefer 1 mip level sharper
+				};
 
 				_vertexArray = vertexes;
 
