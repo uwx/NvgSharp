@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 #if MONOGAME || FNA
 using Microsoft.Xna.Framework;
@@ -102,6 +103,6 @@ namespace NvgSharp
 		void SetTextureData(object texture, Rectangle bounds, byte[] data);
 #endif
 
-		void Draw(float devicePixelRatio, IEnumerable<CallInfo> calls, Vertex[] vertexes);
+		void Draw(float devicePixelRatio, ReadOnlySpan<CallInfo> calls, Vertex[] vertexes);
 	}
 }

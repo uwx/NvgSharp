@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace NvgSharp
 {
-	internal class XNARenderer : INvgRenderer
+	internal class XNARenderer : INvgRenderer, IDisposable
 	{
 		private readonly BlendState _blendStateNoDraw = new BlendState
 		{
@@ -72,7 +72,8 @@ namespace NvgSharp
 		private RasterizerState _oldRasterizerState;
 		private SamplerState _oldSamplerState;
 		private readonly bool _edgeAntiAlias;
-		private Vertex[] _vertexArray;
+		private DynamicVertexBuffer _vertexArray;
+		private readonly IndexBuffer _indexArray;
 
 		private readonly EffectParameter _transformMatParam;
 		private readonly EffectParameter _scissorMatParam;
@@ -109,9 +110,13 @@ namespace NvgSharp
 
 			foreach (var param in Enum.GetValues<RenderingType>())
 				_techniques[(int)param] = _effect.Techniques[param.ToString()];
+			
+			_vertexArray = new DynamicVertexBuffer(device, typeof(Vertex), 2048 * 6, BufferUsage.WriteOnly);
+			_indexArray = new IndexBuffer(device, IndexElementSize.SixteenBits, RenderCache.MAX_VERTICES, BufferUsage.WriteOnly);
+			_indexArray.SetData(_indexes, 0, _indexes.Length);
 		}
 
-		public void Draw(float devicePixelRatio, IEnumerable<CallInfo> calls, Vertex[] vertexes)
+		public void Draw(float devicePixelRatio, ReadOnlySpan<CallInfo> calls, Vertex[] vertexes)
 		{
 			try
 			{
@@ -132,7 +137,7 @@ namespace NvgSharp
 					MipMapLevelOfDetailBias = -1.0f  // prefer 1 mip level sharper
 				};
 
-				_vertexArray = vertexes;
+				_vertexArray.SetData(vertexes, 0, vertexes.Length, SetDataOptions.Discard);
 
 				var transform = Matrix.CreateOrthographicOffCenter(0, _device.Viewport.Width, _device.Viewport.Height, 0, 0, -1);
 				_transformMatParam.SetValue(transform);
@@ -162,7 +167,6 @@ namespace NvgSharp
 				_device.BlendState = _oldBlendState;
 				_device.DepthStencilState = _oldDepthStencilState;
 				_device.RasterizerState = _oldRasterizerState;
-				_vertexArray = null;
 			}
 		}
 
@@ -195,6 +199,8 @@ namespace NvgSharp
 
 			var technique = _techniques[(int)renderingType];
 			_effect.CurrentTechnique = technique;
+			GraphicsDevice.SetVertexBuffer(_vertexArray);
+			GraphicsDevice.Indices = _indexArray;
 			foreach (var pass in _effect.CurrentTechnique.Passes)
 			{
 				pass.Apply();
@@ -202,13 +208,13 @@ namespace NvgSharp
 				if (indexed)
 				{
 					var primitiveCount = vertexCount - 2;
-					_device.DrawUserIndexedPrimitives(primitiveType, _vertexArray, vertexOffset, vertexCount, _indexes, 0, primitiveCount);
+					_device.DrawIndexedPrimitives(primitiveType, vertexOffset, 0, vertexCount, 0, primitiveCount);
 				}
 				else
 				{
 					var primitiveCount =
 						primitiveType == PrimitiveType.TriangleList ? vertexCount / 3 : vertexCount - 2;
-					_device.DrawUserPrimitives(primitiveType, _vertexArray, vertexOffset, primitiveCount);
+					_device.DrawPrimitives(primitiveType, vertexOffset, primitiveCount);
 				}
 			}
 		}
@@ -309,6 +315,12 @@ namespace NvgSharp
 			FillImage,
 			Simple,
 			Triangles
+		}
+
+		public void Dispose()
+		{
+			_vertexArray?.Dispose();
+			_indexArray?.Dispose();
 		}
 	}
 }

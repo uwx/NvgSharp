@@ -12,7 +12,7 @@ namespace NvgSharp
 {
 	internal class RenderCache
 	{
-		private const int MAX_VERTICES = 8192;
+		internal const int MAX_VERTICES = 8192;
 
 		private readonly bool _stencilStrokes;
 

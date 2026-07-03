@@ -99,7 +99,7 @@ namespace NvgSharp
 
 		public void Flush()
 		{
-			_renderer.Draw(_renderCache.DevicePixelRatio, _renderCache.Calls, _renderCache.VertexArray.Array);
+			_renderer.Draw(_renderCache.DevicePixelRatio, CollectionsMarshal.AsSpan(_renderCache.Calls), _renderCache.VertexArray.Array);
 			_renderCache.Reset();
 		}
 
