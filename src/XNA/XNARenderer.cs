@@ -137,6 +137,11 @@ namespace NvgSharp
 					MipMapLevelOfDetailBias = -1.0f  // prefer 1 mip level sharper
 				};
 
+				if (vertexes.Length > _vertexArray.VertexCount)
+				{
+					_vertexArray.Dispose();
+					_vertexArray = new DynamicVertexBuffer(_device, typeof(Vertex), vertexes.Length, BufferUsage.WriteOnly);
+				}
 				_vertexArray.SetData(vertexes, 0, vertexes.Length, SetDataOptions.Discard);
 
 				var transform = Matrix.CreateOrthographicOffCenter(0, _device.Viewport.Width, _device.Viewport.Height, 0, 0, -1);
