@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 
@@ -668,11 +669,11 @@ namespace NvgSharp
 		private void AppendCommand(float p1, float p2, float p3, float p4, float p5, float p6) => 
 			AppendCommand(new Command(p1, p2, p3, p4, p5, p6));
 
-		private NullableRef<Path> GetLastPath()
+		private ref Path GetLastPath()
 		{
 			if (_pathsCache.Count > 0)
-				return new NullableRef<Path>(ref CollectionsMarshal.AsSpan(_pathsCache)[^1]);
-			return NullableRef<Path>.Null;
+				return ref CollectionsMarshal.AsSpan(_pathsCache)[^1];
+			return ref Unsafe.NullRef<Path>();
 		}
 
 		private Path __addPath()
@@ -689,15 +690,15 @@ namespace NvgSharp
 
 		private void __addPoint(float x, float y, PointFlags flags)
 		{
-			var path = GetLastPath();
-			if (!path.HasValue)
+			ref var path = ref GetLastPath();
+			if (Unsafe.IsNullRef(ref path))
 			{
 				return;
 			}
 
-			if (path.Value.Points.Count > 0)
+			if (path.Points.Count > 0)
 			{
-				ref var pt = ref path.Value.LastPoint;
+				ref var pt = ref path.LastPoint;
 				if (__ptEquals(pt.X, pt.Y, x, y, _distTol) != 0)
 				{
 					pt.flags |= (byte)flags;
@@ -712,55 +713,62 @@ namespace NvgSharp
 					Y = y,
 					flags = (byte)flags
 				};
-				path.Value.Points.Add(pt);
+				path.Points.Add(pt);
 			}
 		}
 
 		private void __closePath()
 		{
-			var path = GetLastPath();
-			if (!path.HasValue)
+			ref var path = ref GetLastPath();
+			if (Unsafe.IsNullRef(ref path))
 				return;
-			path.Value.Closed = true;
+			path.Closed = true;
 		}
 
 		private void __pathWinding(Winding winding)
 		{
-			var path = GetLastPath();
-			if (!path.HasValue)
+			ref var path = ref GetLastPath();
+			if (Unsafe.IsNullRef(ref path))
 				return;
-			path.Value.Winding = winding;
+			path.Winding = winding;
 		}
 
-		private void __tesselateBezier(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
-			int level, PointFlags type)
+		private void __tesselateBezier(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int level, PointFlags type)
 		{
-			if (level > 10)
-				return;
-			var x12 = (x1 + x2) * 0.5f;
-			var y12 = (y1 + y2) * 0.5f;
-			var x23 = (x2 + x3) * 0.5f;
-			var y23 = (y2 + y3) * 0.5f;
-			var x34 = (x3 + x4) * 0.5f;
-			var y34 = (y3 + y4) * 0.5f;
-			var x123 = (x12 + x23) * 0.5f;
-			var y123 = (y12 + y23) * 0.5f;
-			var dx = x4 - x1;
-			var dy = y4 - y1;
-			var d2 = Math.Abs((x2 - x4) * dy - (y2 - y4) * dx);
-			var d3 = Math.Abs((x3 - x4) * dy - (y3 - y4) * dx);
-			if ((d2 + d3) * (d2 + d3) < _tessTol * (dx * dx + dy * dy))
+			while (true)
 			{
-				__addPoint(x4, y4, type);
-				return;
-			}
+				if (level > 10) return;
+				var x12 = (x1 + x2) * 0.5f;
+				var y12 = (y1 + y2) * 0.5f;
+				var x23 = (x2 + x3) * 0.5f;
+				var y23 = (y2 + y3) * 0.5f;
+				var x34 = (x3 + x4) * 0.5f;
+				var y34 = (y3 + y4) * 0.5f;
+				var x123 = (x12 + x23) * 0.5f;
+				var y123 = (y12 + y23) * 0.5f;
+				var dx = x4 - x1;
+				var dy = y4 - y1;
+				var d2 = Math.Abs((x2 - x4) * dy - (y2 - y4) * dx);
+				var d3 = Math.Abs((x3 - x4) * dy - (y3 - y4) * dx);
+				if ((d2 + d3) * (d2 + d3) < _tessTol * (dx * dx + dy * dy))
+				{
+					__addPoint(x4, y4, type);
+					return;
+				}
 
-			var x234 = (x23 + x34) * 0.5f;
-			var y234 = (y23 + y34) * 0.5f;
-			var x1234 = (x123 + x234) * 0.5f;
-			var y1234 = (y123 + y234) * 0.5f;
-			__tesselateBezier(x1, y1, x12, y12, x123, y123, x1234, y1234, level + 1, 0);
-			__tesselateBezier(x1234, y1234, x234, y234, x34, y34, x4, y4, level + 1, type);
+				var x234 = (x23 + x34) * 0.5f;
+				var y234 = (y23 + y34) * 0.5f;
+				var x1234 = (x123 + x234) * 0.5f;
+				var y1234 = (y123 + y234) * 0.5f;
+				__tesselateBezier(x1, y1, x12, y12, x123, y123, x1234, y1234, level + 1, 0);
+				x1 = x1234;
+				y1 = y1234;
+				x2 = x234;
+				y2 = y234;
+				x3 = x34;
+				y3 = y34;
+				level = level + 1;
+			}
 		}
 
 		private void __flattenPaths()
@@ -1377,6 +1385,7 @@ namespace NvgSharp
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static int __ptEquals(float x1, float y1, float x2, float y2, float tol)
 		{
 			var dx = x2 - x1;
